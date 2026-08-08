@@ -430,6 +430,19 @@
     cursor:pointer;
     margin-bottom:10px;
   }
+  .btn-pdf{
+    display:block;
+    width:100%;
+    background:var(--steel);
+    color:#fff;
+    border:none;
+    font-weight:800;
+    font-size:1rem;
+    padding:15px;
+    border-radius:12px;
+    cursor:pointer;
+    margin-bottom:10px;
+  }
   .btn-clear{
     display:block;
     width:100%;
@@ -457,6 +470,16 @@
   @media (min-width:600px){
     .card{padding:18px 20px;}
   }
+  @media print{
+    body *{visibility:hidden;}
+    #print-area, #print-area *{visibility:visible;}
+    #print-area{position:absolute;top:0;left:0;width:100%;padding:20px;}
+    .btn-remove, .rctrl{display:none !important;}
+  }
+  #print-area{display:none;}
+  #print-area.active{display:block;}
+  .print-title{font-family:Arial,sans-serif;font-weight:900;font-size:1.4rem;margin-bottom:4px;}
+  .print-sub{color:#7a7365;margin-bottom:16px;font-size:0.9rem;}
 </style>
 </head>
 <body>
@@ -510,9 +533,12 @@
   <div class="overlay-footer">
     <div class="total-row"><span>Total</span><span id="footer-total">$0</span></div>
     <button class="btn-whatsapp" id="btn-send" onclick="sendWhatsapp()">📲 Enviar pedido por WhatsApp</button>
+    <button class="btn-pdf" id="btn-pdf" onclick="downloadPdf()">📄 Descargar pedido en PDF</button>
     <button class="btn-clear" onclick="clearCart()">Vaciar pedido</button>
   </div>
 </div>
+
+<div id="print-area"></div>
 
 <script>
 /* ====== CONFIG ====== */
@@ -893,6 +919,34 @@ function renderReceipt(){
   document.getElementById("btn-send").style.display = items.length===0 ? "none" : "block";
 }
 
+/* ====== PDF ====== */
+function downloadPdf(){
+  const items = cartItems();
+  if(items.length===0) return;
+  const el = document.getElementById("print-area");
+  const now = new Date().toLocaleDateString("es-AR");
+  let html = `<div class="print-title">Distribuidora Osmar — Pedido</div>
+    <div class="print-sub">Fecha: ${now}</div>
+    <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">
+      <thead><tr style="border-bottom:2px solid #333;text-align:left;">
+        <th style="padding:8px 4px;">Cant.</th><th style="padding:8px 4px;">Producto</th><th style="padding:8px 4px;">Código</th><th style="padding:8px 4px;text-align:right;">Precio</th>
+      </tr></thead><tbody>`;
+  items.forEach(it=>{
+    html += `<tr style="border-bottom:1px solid #ddd;">
+      <td style="padding:8px 4px;">${it.qty}</td>
+      <td style="padding:8px 4px;">${escapeHtml(it.name)}</td>
+      <td style="padding:8px 4px;">${escapeHtml(it.code)}</td>
+      <td style="padding:8px 4px;text-align:right;">${fmtPrice(it.price*it.qty)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>
+    <div style="text-align:right;font-size:1.3rem;font-weight:900;margin-top:16px;">Total: ${fmtPrice(cartTotal())}</div>`;
+  el.innerHTML = html;
+  el.classList.add("active");
+  window.print();
+  setTimeout(()=>{ el.classList.remove("active"); }, 500);
+}
+
 /* ====== WHATSAPP ====== */
 function sendWhatsapp(){
   const items = cartItems();
@@ -904,6 +958,11 @@ function sendWhatsapp(){
   msg += `\nTotal: ${fmtPrice(cartTotal())}`;
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   window.open(url, "_blank");
+  cart = {};
+  saveCart();
+  renderReceipt();
+  updateCartBar();
+  renderList();
 }
 
 /* ====== SEARCH ====== */
