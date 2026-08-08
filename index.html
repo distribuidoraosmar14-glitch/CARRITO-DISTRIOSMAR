@@ -471,10 +471,8 @@
     .card{padding:18px 20px;}
   }
   @media print{
-    body *{visibility:hidden;}
-    #print-area, #print-area *{visibility:visible;}
-    #print-area{position:absolute;top:0;left:0;width:100%;padding:20px;}
-    .btn-remove, .rctrl{display:none !important;}
+    body > *:not(#print-area){display:none !important;}
+    #print-area{display:block !important;position:static;padding:20px;}
   }
   #print-area{display:none;}
   #print-area.active{display:block;}
