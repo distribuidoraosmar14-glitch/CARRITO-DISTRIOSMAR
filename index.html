@@ -214,6 +214,27 @@
     gap:10px;
   }
   .card.in-cart{border-left-color:var(--green);background:#F4FBF6;}
+  .card.no-stock{border-left-color:#E0B400;background:#FFF6C2;}
+  .no-stock-badge{
+    display:inline-block;
+    margin:4px 0 0 6px;
+    font-size:0.8rem;
+    font-weight:800;
+    color:#5c4a00;
+    background:#FFE066;
+    padding:2px 8px;
+    border-radius:4px;
+  }
+  .no-stock-label{
+    font-weight:800;
+    font-size:1rem;
+    color:#5c4a00;
+    background:#FFE066;
+    padding:14px 16px;
+    border-radius:10px;
+    min-height:52px;
+    display:flex;align-items:center;
+  }
   .card .thumb{
     flex:0 0 auto;
     width:72px;height:72px;
@@ -814,6 +835,7 @@ let searchTerm = "";
 let visibleCount = 40;
 const PAGE_SIZE = 40;
 let cart = {}; // key: product code -> qty
+let NO_STOCK = new Set(); // códigos marcados "SIN STOCK" en la planilla
 
 /* ====== CSV FETCH & PARSE ====== */
 function fetchSheetCSV(sheetName){
@@ -886,6 +908,7 @@ async function loadAllProducts(){
       const name = (r[1]||'').replace(/\s+/g,' ').trim();
       const sheetImg = normalizeImgUrl(r[4]||'');
       const priceRaw = (r[3]||'').trim();
+      const noStock = (r[5]||'').trim().toUpperCase() === 'SIN STOCK';
       if(!name) continue;
       const price = parseArgPrice(priceRaw);
       if(isNaN(price)) continue;
@@ -894,7 +917,8 @@ async function loadAllProducts(){
         code: code,
         name: name,
         price: Math.round(price*100)/100,
-        img: sheetImg || IMG_MAP[code] || null
+        img: sheetImg || IMG_MAP[code] || null,
+        noStock: noStock
       });
     }
   });
@@ -906,6 +930,7 @@ async function loadAllProducts(){
 async function init(){
   try{
     PRODUCTS = await loadAllProducts();
+    NO_STOCK = new Set(PRODUCTS.filter(p => p.noStock && p.code).map(p => p.code));
   } catch(e){
     document.getElementById("boot-loading").style.display = "none";
     document.getElementById("boot-error").style.display = "flex";
@@ -1168,14 +1193,15 @@ function renderList(){
   let html = "";
   toShow.forEach(p=>{
     const qty = cart[p.code] || 0;
-    html += `<div class="card ${qty>0?'in-cart':''}" id="card-${escapeHtml(p.code)}">
+    const sinStock = p.noStock || NO_STOCK.has(p.code);
+    html += `<div class="card ${qty>0?'in-cart':''} ${sinStock?'no-stock':''}" id="card-${escapeHtml(p.code)}">
       <div class="thumb">${thumbHtml(p.img)}</div>
       <div class="info">
         <div class="name">${escapeHtml(p.name)}</div>
-        <span class="code">Cód. ${escapeHtml(p.code)}</span>
+        <span class="code">Cód. ${escapeHtml(p.code)}</span>${sinStock?'<span class="no-stock-badge">SIN STOCK</span>':''}
         <div class="price">${fmtPrice(p.price)}</div>
       </div>
-      <div class="action" id="action-${escapeHtml(p.code)}">${renderAction(p.code, qty)}</div>
+      <div class="action" id="action-${escapeHtml(p.code)}">${renderAction(p.code, qty, sinStock)}</div>
     </div>`;
   });
   if(filtered.length > toShow.length){
@@ -1184,7 +1210,10 @@ function renderList(){
   el.innerHTML = html;
 }
 
-function renderAction(code, qty){
+function renderAction(code, qty, sinStock){
+  if(qty<=0 && (sinStock || NO_STOCK.has(code))){
+    return `<div class="no-stock-label">Sin stock</div>`;
+  }
   if(qty<=0){
     return `<button class="btn-add" onclick="addItem('${escJs(code)}')">Agregar</button>`;
   }
