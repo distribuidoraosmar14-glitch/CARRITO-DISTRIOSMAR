@@ -215,6 +215,12 @@
   }
   .card.in-cart{border-left-color:var(--green);background:#F4FBF6;}
   .card.no-stock{border-left-color:#E0B400;background:#FFF6C2;}
+  .prod-note{
+    margin-top:4px;
+    font-size:0.85rem;
+    font-style:italic;
+    color:#5a5245;
+  }
   .no-stock-badge{
     display:inline-block;
     margin:4px 0 0 6px;
@@ -816,6 +822,10 @@ const VARIANTS = {
     "PLATEADO MATE", "PLATEADO SATINADO", "PLATEADO BRILLANTE"
   ]
 };
+/* Aclaraciones que se muestran debajo del nombre del producto */
+const NOTES = {
+  "AEROSOL": "Marca según disponibilidad"
+};
 const CART_STORAGE_KEY = "distriosmar_cart_v1";
 const NAME_STORAGE_KEY = "distriosmar_name_v1";
 
@@ -1215,6 +1225,7 @@ function renderList(){
       <div class="info">
         <div class="name">${escapeHtml(p.name)}</div>
         <span class="code">Cód. ${escapeHtml(p.code)}</span>${sinStock?'<span class="no-stock-badge">SIN STOCK</span>':''}
+        ${NOTES[p.code.toUpperCase()]?`<div class="prod-note">${escapeHtml(NOTES[p.code.toUpperCase()])}</div>`:''}
         <div class="price">${fmtPrice(p.price)}</div>
       </div>
       <div class="action" id="action-${escapeHtml(p.key)}">${renderAction(p.key, qty, sinStock)}</div>
